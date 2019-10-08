@@ -21,8 +21,12 @@ public class PoloniexSpecs extends ExchangeSpecs {
         super();
     }
 
+    public PoloniexSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new PoloniexExchange().getDefaultExchangeSpecification();
         if (super.getTradingMode()) {
             exSpec.setApiKey(super.getApiKey());

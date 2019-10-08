@@ -26,13 +26,12 @@ import java.util.concurrent.*;
  * <p>
  * class for the information needed to use the trading action as behavior action
  */
-@Service
-public class ArbitrageTradingAction extends ArbitrageActionSelection {
+public abstract class ArbitrageTradingAction extends ArbitrageActionSelection {
 
     @Autowired
     TradeHistoryService tradeHistoryService;
 
-    private double tradeValueBase;
+    double tradeValueBase;
 
     //variable to keep track of how many trades you would like to make
     int round =0;
@@ -67,16 +66,14 @@ public class ArbitrageTradingAction extends ArbitrageActionSelection {
      * CanTrade method that determines if there is an arbitrage opportunity and if you are able to execute it.
      * @param lowAsk
      * @param highBid
-     * @param arbitrageTradingAction
      * @return true if able to trade
      * @throws ExchangeDataException
      */
     public boolean canTrade(TickerData lowAsk,
-                            TickerData highBid,
-                            ArbitrageTradingAction arbitrageTradingAction) throws ExchangeDataException {
+                            TickerData highBid) throws ExchangeDataException {
 
         //if the lowAsk exchange is the same as the highBid exchange print to console, this usually means to you do not have the required funds to trades
-        if (highBid.getExchange().getExchangeSpecification().getExchangeName() == lowAsk.getExchange().getExchangeSpecification().getExchangeName()) {
+        if (highBid.getExchange().getExchangeSpecification().getExchangeName().equals(lowAsk.getExchange().getExchangeSpecification().getExchangeName())) {
 
             System.out.println("###########################################################");
             System.out.println("low ask exchange is the same as high bid exchange");
@@ -94,10 +91,10 @@ public class ArbitrageTradingAction extends ArbitrageActionSelection {
         BigDecimal expectedDifference = marginDiffCompare.findDiff(lowAsk,highBid);
 
         //the difference between the arbitrage margin and percentage of returns
-        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk,highBid,arbitrageTradingAction.getArbitrageMargin());
+        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk,highBid, getArbitrageMargin());
 
         //amount chosen to trade
-        BigDecimal tradeAmount = BigDecimal.valueOf(arbitrageTradingAction.getTradeValueBase());
+        BigDecimal tradeAmount = BigDecimal.valueOf(getTradeValueBase());
         System.out.println("trade amount" + tradeAmount);
 
         //currency pair of the lowest ask
@@ -141,22 +138,20 @@ public class ArbitrageTradingAction extends ArbitrageActionSelection {
      * Make trade method that executes trades on the low ask exchange and the high bid exchange
      * @param lowAsk
      * @param highBid
-     * @param arbitrageTradingAction
      */
     public void makeTrade(TickerData lowAsk,
-                          TickerData highBid,
-                          ArbitrageTradingAction arbitrageTradingAction) {
+                          TickerData highBid) {
 
         MarginDiffCompare marginDiffCompare = new MarginDiffCompare();
 
         //percentage of returns you will make
-        BigDecimal expectedDifference = marginDiffCompare.findDiff(lowAsk,highBid);
+        BigDecimal expectedDifference = marginDiffCompare.findDiff(lowAsk, highBid);
 
         //the difference between the arbitrage margin and percentage of returns
-        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk,highBid,arbitrageTradingAction.getArbitrageMargin());
+        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk, highBid, getArbitrageMargin());
 
         //the volume you wish to trade
-        BigDecimal tradeAmount = BigDecimal.valueOf(arbitrageTradingAction.getTradeValueBase());
+        BigDecimal tradeAmount = BigDecimal.valueOf(getTradeValueBase());
 
         //currency pair of the lowest ask
         CurrencyPair tradedPair = lowAsk.getCurrencyPair();

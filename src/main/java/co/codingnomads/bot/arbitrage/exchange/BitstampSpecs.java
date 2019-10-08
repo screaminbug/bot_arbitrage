@@ -21,8 +21,12 @@ public class BitstampSpecs extends ExchangeSpecs {
         super();
     }
 
+    public BitstampSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new BitstampExchange().getDefaultExchangeSpecification();
         if (super.getTradingMode()) {
             exSpec.setApiKey(super.getApiKey());

@@ -20,8 +20,12 @@ public class GeminiSpecs  extends ExchangeSpecs {
             super();
         }
 
+    public GeminiSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new GeminiExchange().getDefaultExchangeSpecification();
             if (super.getTradingMode()) {
                 exSpec.setApiKey(super.getApiKey());

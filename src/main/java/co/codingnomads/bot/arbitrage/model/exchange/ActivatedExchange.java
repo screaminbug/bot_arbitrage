@@ -17,15 +17,17 @@ public class ActivatedExchange implements Callable<ActivatedExchange> {
     private Exchange exchange;
     private boolean activated = true;
     private boolean tradingMode = false;
+    private boolean simulatedMode = false;
 
     /**
      * Activated Exchange Constructor
      * @param exchange
      * @param tradingMode
      */
-    public ActivatedExchange(Exchange exchange, boolean tradingMode) {
+    public ActivatedExchange(Exchange exchange, boolean tradingMode, boolean simulatedMode) {
         this.exchange = exchange;
         this.tradingMode = tradingMode;
+        this.simulatedMode = simulatedMode;
     }
 
     public Exchange getExchange() {
@@ -46,6 +48,10 @@ public class ActivatedExchange implements Callable<ActivatedExchange> {
 
     public boolean isTradingMode() {
         return tradingMode;
+    }
+
+    public boolean isSimulatedMode() {
+        return simulatedMode;
     }
 
     public void setTradingMode(boolean tradingMode) {

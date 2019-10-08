@@ -14,11 +14,16 @@ public abstract class ExchangeSpecs {
     private String apiKey;
     private String secretKey;
     private Boolean tradingMode = false;
+    private Boolean isSimulated = false;
 
 
     protected ExchangeSpecs(String apiKey, String secretKey) {
         this.apiKey = apiKey;
         this.secretKey = secretKey;
+    }
+
+    protected ExchangeSpecs(boolean isSimulation) {
+        isSimulated = isSimulation;
     }
 
     protected ExchangeSpecs() {
@@ -40,6 +45,9 @@ public abstract class ExchangeSpecs {
         this.tradingMode = tradingMode;
     }
 
-    public abstract ExchangeSpecification GetSetupedExchange ();
+    public abstract ExchangeSpecification getSetupExchange();
 
+    public boolean getSimulatedMode() {
+        return isSimulated;
+    }
 }

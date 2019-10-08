@@ -1,6 +1,7 @@
 package co.codingnomads.bot.arbitrage.service.arbitrage;
 
 import co.codingnomads.bot.arbitrage.exception.ExchangeDataException;
+import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
 import co.codingnomads.bot.arbitrage.model.exchange.ActivatedExchange;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import co.codingnomads.bot.arbitrage.action.arbitrage.selection.ArbitrageActionSelection;
@@ -10,14 +11,15 @@ import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitrageEmailAction;
 import co.codingnomads.bot.arbitrage.exception.EmailLimitException;
 import co.codingnomads.bot.arbitrage.exchange.ExchangeSpecs;
 import co.codingnomads.bot.arbitrage.service.general.*;
+import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
+import org.knowm.xchange.dto.account.Balance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.concurrent.*;
 
 /**
  * Created by Thomas Leruth on 12/14/17
@@ -28,6 +30,9 @@ import java.util.concurrent.*;
 
 @Service
 public class Arbitrage {
+
+    @Autowired
+    private SimulatedWallet simulatedWallet;
 
     BalanceCalc balanceCalc = new BalanceCalc();
 
@@ -68,27 +73,28 @@ public class Arbitrage {
      */
     public void run(CurrencyPair currencyPair,
                     ArrayList<ExchangeSpecs> selectedExchanges,
-                    ArbitrageActionSelection arbitrageActionSelection) throws IOException, InterruptedException, EmailLimitException, ExchangeDataException {
+                    ArbitrageActionSelection arbitrageActionSelection,
+                    boolean isSimulated) throws IOException, InterruptedException, EmailLimitException, ExchangeDataException {
 
 
         //Determines the arbitrage action being called
-        Boolean tradingMode = arbitrageActionSelection instanceof ArbitrageTradingAction;
-        Boolean emailMode = arbitrageActionSelection instanceof ArbitrageEmailAction;
-        Boolean printMode = arbitrageActionSelection instanceof ArbitragePrintAction;
+        boolean tradingMode = arbitrageActionSelection instanceof ArbitrageTradingAction;
+        boolean emailMode = arbitrageActionSelection instanceof ArbitrageEmailAction;
+        boolean printMode = arbitrageActionSelection instanceof ArbitragePrintAction;
 
         //If trading mode and exchange specs are not set up, throw new ExchangeDataException
-        if (tradingMode) {
+        if (tradingMode && !isSimulated) {
 
             for (ExchangeSpecs exchange : selectedExchanges) {
 
-                if (exchange.GetSetupedExchange().getApiKey() == null || exchange.GetSetupedExchange().getSecretKey() == null) {
+                if (exchange.getSetupExchange().getApiKey() == null || exchange.getSetupExchange().getSecretKey() == null) {
 
-                    throw new ExchangeDataException("You must enter correct exchange specs for " + exchange.GetSetupedExchange().getExchangeName());
+                    throw new ExchangeDataException("You must enter correct exchange specs for " + exchange.getSetupExchange().getExchangeName());
                 }
 
             }
 
-            //prints balance out for the selectedExchanges
+//            prints balance out for the selectedExchanges
             balanceCalc.Balance(selectedExchanges, currencyPair);
         }
 
@@ -100,6 +106,15 @@ public class Arbitrage {
 
         //create a new array list of Activated Exchanges and sets it equal to the selected exchanges set in the controller
         ArrayList<ActivatedExchange> activatedExchanges = exchangeGetter.getAllSelectedExchangeServices(selectedExchanges, tradingMode);
+
+        // Todo: make this follow declared pairs in selectors
+        if (isSimulated) {
+            activatedExchanges.forEach($ -> {
+                    simulatedWallet.putBalance($.getExchange(), Currency.ETH, new Balance(Currency.ETH, new BigDecimal(1000)));
+                    simulatedWallet.putBalance($.getExchange(), Currency.USD, new Balance(Currency.USD, new BigDecimal(100000)));
+                    simulatedWallet.putBalance($.getExchange(), Currency.BTC, new Balance(Currency.BTC, new BigDecimal(100)));
+            });
+        }
 
         //sets the tradeValueBase given in the controller for arbitrageTradingAction
         if (tradingMode) tradeValueBase = ((ArbitrageTradingAction) arbitrageActionSelection).getTradeValueBase();
@@ -115,10 +130,10 @@ public class Arbitrage {
 
             //Create an ArrrayList of TickerData and set it to the get all ticker data method from the exchange data getter class
             ArrayList<TickerData> listTickerData = exchangeDataGetter.getAllTickerData(
-
                     activatedExchanges,
                     currencyPair,
-                    valueOfTradeValueBase);
+                    valueOfTradeValueBase,
+                    simulatedWallet);
 
             //if the list of ticker data is empty the currencypair is not supported on the exchange
             if (tradingMode && listTickerData.size() == 0) {
@@ -146,15 +161,15 @@ public class Arbitrage {
             //if the call is an instance of email action, run the email method from the arbitrage email action
             if (emailMode) {
                 ArbitrageEmailAction arbitrageEmailAction = (ArbitrageEmailAction) arbitrageActionSelection;
-                arbitrageEmailAction.email(arbitrageEmailAction.getEmail(), lowAsk, highBid,arbitrageActionSelection.getArbitrageMargin());
+                arbitrageEmailAction.email(arbitrageEmailAction.getEmail(), lowAsk, highBid, arbitrageActionSelection.getArbitrageMargin());
 
             }
             //if the call is an instance of trading action, run the trade method from the arbitrage trading action
             if (tradingMode) {
                 ArbitrageTradingAction arbitrageTradingAction = (ArbitrageTradingAction) arbitrageActionSelection;
 
-                if (arbitrageTradingAction.canTrade(lowAsk, highBid, (ArbitrageTradingAction) arbitrageActionSelection) == true){
-                    arbitrageTradingAction.makeTrade(lowAsk, highBid, (ArbitrageTradingAction) arbitrageActionSelection);
+                if (arbitrageTradingAction.canTrade(lowAsk, highBid)) {
+                    arbitrageTradingAction.makeTrade(lowAsk, highBid);
                 }
 
             }

@@ -117,7 +117,7 @@ public class Detection {
                 DetectionLogAction detectionLogAction = (DetectionLogAction) detectionActionSelection;
 
                 int dbInsertWaitTime = detectionLogAction.getWaitInterval();
-                if (dbInsertWaitTime >= 60000) {
+                if (dbInsertWaitTime >= 1000) {
                     detectionService.insertDetectionRecords(differenceWrapperList);
                     System.out.println("====================================================");
                     System.out.println("====================================================");
@@ -129,7 +129,7 @@ public class Detection {
                     Thread.sleep(detectionLogAction.getWaitInterval());
                     logCounter++;
                 }
-                else throw  new WaitTimeException ("Please enter a wait time of over 1 minute, to prevent overloading the database");
+                else throw  new WaitTimeException ("Please enter a wait time of over 1 second, to prevent overloading the database");
 
 
             }

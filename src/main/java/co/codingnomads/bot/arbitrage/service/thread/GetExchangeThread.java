@@ -22,8 +22,8 @@ public class GetExchangeThread implements Callable<ActivatedExchange> {
      */
     @Override
     public ActivatedExchange call() {
-        Exchange exchange = ExchangeFactory.INSTANCE.createExchange(exchangeSpecs.GetSetupedExchange());
-        return new ActivatedExchange(exchange, exchangeSpecs.getTradingMode());
+        Exchange exchange = ExchangeFactory.INSTANCE.createExchange(exchangeSpecs.getSetupExchange());
+        return new ActivatedExchange(exchange, exchangeSpecs.getTradingMode(), exchangeSpecs.getSimulatedMode());
     }
 
     /**

@@ -21,8 +21,12 @@ public class BitfinexSpecs extends ExchangeSpecs {
         super();
     }
 
+    public BitfinexSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new BitfinexExchange().getDefaultExchangeSpecification();
         if (super.getTradingMode()) {
             exSpec.setApiKey(super.getApiKey());

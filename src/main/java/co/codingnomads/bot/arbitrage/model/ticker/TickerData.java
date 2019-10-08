@@ -12,10 +12,10 @@ import java.math.BigDecimal;
 
 public class TickerData {
 
-    private CurrencyPair currencyPair;
+    CurrencyPair currencyPair;
     Exchange exchange;
-    private BigDecimal bid;
-    private BigDecimal ask;
+    BigDecimal bid;
+    BigDecimal ask;
 
     /**
      * Constructor for the TickerData class

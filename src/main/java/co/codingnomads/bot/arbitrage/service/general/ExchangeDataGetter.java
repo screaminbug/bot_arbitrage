@@ -1,8 +1,12 @@
 package co.codingnomads.bot.arbitrage.service.general;
 
+import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
 import co.codingnomads.bot.arbitrage.model.exchange.ActivatedExchange;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import co.codingnomads.bot.arbitrage.service.thread.GetTickerDataThread;
+import jdk.nashorn.internal.runtime.logging.Logger;
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.Ticker;
@@ -17,9 +21,11 @@ import java.util.concurrent.*;
  * A class to get data from exchanges and format it correctly
  */
 @Service
+@Slf4j
 public class ExchangeDataGetter {
 
     private final static int TIMEOUT = 30;
+
 
     /**
      *
@@ -30,9 +36,23 @@ public class ExchangeDataGetter {
      * @return A list of TickerData for all the exchanges
      */
     public ArrayList<TickerData> getAllTickerData(ArrayList<ActivatedExchange> activatedExchanges,
-
                                                   CurrencyPair currencyPair,
                                                   BigDecimal tradeValueBase) {
+        return getAllTickerData(activatedExchanges, currencyPair, tradeValueBase, null);
+    }
+
+    /**
+     *
+     * Get All the TickerData from the selected exchanged
+     * @param activatedExchanges list of currently acrivated exchanges
+     * @param currencyPair the pair the TickerData is seeked for
+     * @param tradeValueBase the value of the trade if using the trading action as behavior
+     * @return A list of TickerData for all the exchanges
+     */
+    public ArrayList<TickerData> getAllTickerData(ArrayList<ActivatedExchange> activatedExchanges,
+                                                  CurrencyPair currencyPair,
+                                                  BigDecimal tradeValueBase,
+                                                  SimulatedWallet simulatedWallet) {
 
         ArrayList<TickerData> list = new ArrayList<>();
 
@@ -41,21 +61,21 @@ public class ExchangeDataGetter {
 
         //for each activated exchange submit into the executor pool
         for (ActivatedExchange activatedExchange : activatedExchanges) {
-            if (activatedExchange.isActivated()) {
-                GetTickerDataThread temp = new GetTickerDataThread(activatedExchange, currencyPair, tradeValueBase);
+            if (activatedExchange.isActivated() || activatedExchange.isSimulatedMode()) {
+                GetTickerDataThread temp = new GetTickerDataThread(activatedExchange, currencyPair, tradeValueBase, simulatedWallet);
                 pool.submit(temp);
             }
         }
         //for each activated exchange if it is activated take from the executor pool and return those activated exchanges
         for (ActivatedExchange activatedExchange : activatedExchanges) {
-            if (activatedExchange.isActivated()) {
+            if (activatedExchange.isActivated() || activatedExchange.isSimulatedMode()) {
                 try {
                     TickerData tickerData = pool.take().get();
                     if (null != tickerData) {
                         list.add(tickerData);
                     }
                 } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
+                    log.info("Couldn't get ticker data because of: {}", e.getMessage());
                 }
             }
         }

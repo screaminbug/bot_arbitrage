@@ -62,16 +62,36 @@ public class TradingData {
         this.differenceCounterBuy = newCounterBuy.subtract(oldCounterBuy);
         this.differenceBaseSell = newBaseSell.subtract(oldBaseSell);
         this.differenceCounterSell = newCounterSell.subtract(oldCounterSell);
-        this.realAsk = differenceCounterBuy.divide(differenceBaseBuy, 5, BigDecimal.ROUND_HALF_EVEN).abs();
-        this.realBid = differenceCounterSell.divide(differenceBaseSell, 5, BigDecimal.ROUND_HALF_EVEN).abs();
-        this.differenceBidAsk = realBid.divide(realAsk, 5, RoundingMode.HALF_EVEN);
+        try {
+            this.realAsk = differenceCounterBuy.divide(differenceBaseBuy, 5, BigDecimal.ROUND_HALF_EVEN).abs();
+        } catch (ArithmeticException e) {
+            this.realAsk = BigDecimal.ZERO;
+        }
+        try {
+            this.realBid = differenceCounterSell.divide(differenceBaseSell, 5, BigDecimal.ROUND_HALF_EVEN).abs();
+        } catch (ArithmeticException e) {
+            this.realBid = BigDecimal.ZERO;
+        }
+        try {
+            this.differenceBidAsk = realBid.divide(realAsk, 5, RoundingMode.HALF_EVEN);
+        } catch (ArithmeticException e) {
+            this.differenceBidAsk = BigDecimal.ZERO;
+        }
         this.realDifferenceFormated = differenceBidAsk.add(BigDecimal.valueOf(-1)).multiply(BigDecimal.valueOf(100));
-        this.differenceTotalBase = newTotalBase.divide(oldTotalBase, 5, BigDecimal.ROUND_HALF_EVEN).add(BigDecimal.valueOf(-1)).multiply(BigDecimal.valueOf(100));
+        try {
+            this.differenceTotalBase = newTotalBase.divide(oldTotalBase, 5, BigDecimal.ROUND_HALF_EVEN).add(BigDecimal.valueOf(-1)).multiply(BigDecimal.valueOf(100));
+        } catch (ArithmeticException e) {
+            this.differenceTotalBase = BigDecimal.ZERO;
+        }
         this.buyExchange = lowAsk.getExchange().getExchangeSpecification().getExchangeName();
         this.sellExchange = highBid.getExchange().getExchangeSpecification().getExchangeName();
         this.baseName = lowAsk.getCurrencyPair().base.toString();
         this.counterName = lowAsk.getCurrencyPair().counter.toString();
-        this.expectedDifference = highBid.getBid().divide(lowAsk.getAsk(), 5, RoundingMode.HALF_EVEN);
+        try {
+            this.expectedDifference = highBid.getBid().divide(lowAsk.getAsk(), 5, RoundingMode.HALF_EVEN);
+        } catch (ArithmeticException e) {
+            this.expectedDifference = BigDecimal.ZERO;
+        }
         this.expectedDifferenceFormatted = expectedDifference.add(BigDecimal.valueOf(-1)).multiply(BigDecimal.valueOf(100));
         this.estimatedFee = expectedDifferenceFormatted.subtract(realDifferenceFormated);
     }

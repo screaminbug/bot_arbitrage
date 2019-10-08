@@ -1,12 +1,16 @@
 package co.codingnomads.bot.arbitrage.service.thread;
 
 import co.codingnomads.bot.arbitrage.exception.ExchangeDataException;
+import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
 import co.codingnomads.bot.arbitrage.model.exchange.ActivatedExchange;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerDataTrading;
 import co.codingnomads.bot.arbitrage.service.general.ExchangeDataGetter;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.account.Wallet;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.concurrent.Callable;
@@ -17,11 +21,15 @@ import java.util.concurrent.TimeoutException;
  *
  * A runnable class using Callable<TickerData> to be able to return a TickerData
  */
+
 public class GetTickerDataThread implements Callable<TickerData> {
+
+    private SimulatedWallet simulatedWallet;
 
     private ActivatedExchange activatedExchange;
     private CurrencyPair currencyPair;
     private boolean tradingEnvironment = false;
+    private boolean simulatedEnvironment = false;
     private BigDecimal tradeAmountBase;
 
     /**
@@ -40,12 +48,16 @@ public class GetTickerDataThread implements Callable<TickerData> {
         TickerData tickerData = ExchangeDataGetter.getTickerData(activatedExchange.getExchange(), currencyPair);
 
         // the part below format specially TickerData for the trading action having one more check (sufficient fund)
-        if (tradingEnvironment && tickerData != null) {
+        if (tradingEnvironment || simulatedEnvironment && tickerData != null) {
             try {
-                Wallet wallet = activatedExchange.getExchange().getAccountService().getAccountInfo().getWallet();
-                baseFund = wallet.getBalance(currencyPair.base).getTotal();
-                counterFund = wallet.getBalance(currencyPair.counter).getTotal();
-
+                if (simulatedEnvironment) {
+                    baseFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.base).getTotal();
+                    counterFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.counter).getTotal();
+                } else {
+                    Wallet wallet = activatedExchange.getExchange().getAccountService().getAccountInfo().getWallet();
+                    baseFund = wallet.getBalance(currencyPair.base).getTotal();
+                    counterFund = wallet.getBalance(currencyPair.counter).getTotal();
+                }
             } catch (IOException e) { e.printStackTrace(); }
 
             baseNeed = tradeAmountBase;
@@ -76,10 +88,12 @@ public class GetTickerDataThread implements Callable<TickerData> {
      * @param activatedExchange a pojo containing the exchange and some booleans
      * @param currencyPair      the pair investigated
      */
-    public GetTickerDataThread(ActivatedExchange activatedExchange, CurrencyPair currencyPair, BigDecimal tradeAmountBase) {
+    public GetTickerDataThread(ActivatedExchange activatedExchange, CurrencyPair currencyPair, BigDecimal tradeAmountBase, SimulatedWallet simulatedWallet) {
         this.activatedExchange = activatedExchange;
         this.currencyPair = currencyPair;
         this.tradeAmountBase = tradeAmountBase;
+        if (activatedExchange.isSimulatedMode()) simulatedEnvironment = true;
         if (tradeAmountBase.doubleValue() > 0) tradingEnvironment = true;
+        this.simulatedWallet = simulatedWallet;
     }
 }

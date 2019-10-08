@@ -26,8 +26,12 @@ public class GDAXSpecs extends ExchangeSpecs {
         super();
     }
 
+    public GDAXSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new GDAXExchange().getDefaultExchangeSpecification();
         if (super.getTradingMode()) {
             Map<String, Object> map = new HashMap<>();

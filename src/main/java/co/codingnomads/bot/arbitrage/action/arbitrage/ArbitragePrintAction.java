@@ -31,7 +31,7 @@ public class ArbitragePrintAction extends ArbitrageActionSelection {
 
     ExchangeSpecs exchangeSpecs = new ExchangeSpecs() {
         @Override
-        public ExchangeSpecification GetSetupedExchange() {
+        public ExchangeSpecification getSetupExchange() {
             return null;
         }
     };

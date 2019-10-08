@@ -21,8 +21,12 @@ public class KrakenSpecs extends ExchangeSpecs {
         super();
     }
 
+    public KrakenSpecs(boolean isSimulation) {
+        super(isSimulation);
+    }
+
     @Override
-    public ExchangeSpecification GetSetupedExchange() {
+    public ExchangeSpecification getSetupExchange() {
         ExchangeSpecification exSpec = new KrakenExchange().getDefaultExchangeSpecification();
         if (super.getTradingMode()) {
             exSpec.setApiKey(super.getApiKey());
