@@ -6,7 +6,9 @@ import org.knowm.xchange.dto.account.Balance;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,6 +24,10 @@ public class SimulatedWallet {
     public Balance getBalance(Exchange exchange, Currency currency) {
         balances.computeIfAbsent(exchange, $ -> new HashMap<>());
         return balances.get(exchange).get(currency);
+    }
+
+    public Collection<Balance> getBalances(Exchange exchange) {
+        return balances.get(exchange).values();
     }
 
     public void add(Exchange exchange, Currency currency, BigDecimal amount) {

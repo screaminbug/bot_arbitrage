@@ -55,7 +55,7 @@ public class SimulatedExchange implements Exchange {
 
     @Override
     public MarketDataService getMarketDataService() {
-        return null;
+        return realExchange.getMarketDataService();
     }
 
     @Override
@@ -65,7 +65,7 @@ public class SimulatedExchange implements Exchange {
 
     @Override
     public AccountService getAccountService() {
-        return new SimulatedAccountService();
+        return new SimulatedAccountService(realExchange, simulatedWallet);
     }
 
     @Override

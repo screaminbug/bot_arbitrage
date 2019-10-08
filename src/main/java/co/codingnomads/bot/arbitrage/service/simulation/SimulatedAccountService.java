@@ -1,5 +1,7 @@
 package co.codingnomads.bot.arbitrage.service.simulation;
 
+import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
+import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.AccountInfo;
 import org.knowm.xchange.dto.account.Balance;
@@ -14,17 +16,24 @@ import org.knowm.xchange.service.trade.params.WithdrawFundsParams;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+
 import java.util.List;
 
 public class SimulatedAccountService implements AccountService {
+
+    private SimulatedWallet simulatedWallet;
+    private Exchange exchange;
+
+    public SimulatedAccountService(Exchange exchange, SimulatedWallet simulatedWallet) {
+        this.exchange = exchange;
+        this.simulatedWallet = simulatedWallet;
+    }
+
     @Override
     public AccountInfo getAccountInfo() throws ExchangeException, NotAvailableFromExchangeException, NotYetImplementedForExchangeException, IOException {
 
         return new AccountInfo(
-                new Wallet(
-                        new Balance(Currency.BTC, new BigDecimal(100)),
-                        new Balance(Currency.USD, new BigDecimal(100000)),
-                        new Balance(Currency.ETH, new BigDecimal(100))));
+                new Wallet(simulatedWallet.getBalances(exchange)));
     }
 
     @Override
