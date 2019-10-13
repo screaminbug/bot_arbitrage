@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Kevin Neag
@@ -31,14 +32,14 @@ import java.util.ArrayList;
  */
 public class BalanceCalc {
 
-    public void Balance(ArrayList<ExchangeSpecs> selected, CurrencyPair currencyPair) throws IOException {
+    public void Balance(List<ExchangeSpecs> selected, CurrencyPair currencyPair) throws IOException {
 
             String currency1 = currencyPair.base.toString();
 
             String currency2 = currencyPair.counter.toString();
 
             ExchangeGetter exchangeGetter = new ExchangeGetter();
-            ArrayList<ActivatedExchange> activatedExchanges = exchangeGetter.getAllSelectedExchangeServices(selected, true);
+            List<ActivatedExchange> activatedExchanges = exchangeGetter.getAllSelectedExchangeServices(selected, true);
 
             for (ActivatedExchange activatedExchange : activatedExchanges) {
 

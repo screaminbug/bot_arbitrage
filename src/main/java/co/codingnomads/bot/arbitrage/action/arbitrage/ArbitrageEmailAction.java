@@ -15,6 +15,9 @@ import com.amazonaws.services.simpleemail.model.Message;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
@@ -32,58 +35,14 @@ import java.math.BigDecimal;
  */
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Service
+@Component("email")
+@Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class ArbitrageEmailAction extends ArbitrageActionSelection {
 
     @Autowired
-    EmailService emailService;
+    private EmailService emailService;
 
-    Email email = new Email();
-
-
-
-    public ArbitrageEmailAction(double arbitrageMargin) {
-        super(arbitrageMargin);
-    }
-
-    /**
-     * Fully qualified constructor
-     * @param arbitrageMargin the margin difference accepted (not a valid arbitrage if below that value)
-     * @param FROM  the email address that will send email (set at default to cryptoarbitragebot25@gmail.com
-     * @param TO    the email address where email alerts will be sent
-     * @param SUBJECT   the subject of the email
-     * @param HTMLBODY  the email message body in HTML format
-     * @param TEXTBODY  the email message body
-     * @param timeEmailSent the time that the email is sent
-     */
-    public ArbitrageEmailAction(double arbitrageMargin, String FROM, String TO, String SUBJECT, String HTMLBODY, String TEXTBODY, String timeEmailSent) {
-        super(arbitrageMargin);
-        email.setFROM(FROM);
-        email.setTO(TO);
-        email.setSUBJECT(SUBJECT);
-        email.setHTMLBODY(HTMLBODY);
-        email.setTEXTBODY(TEXTBODY);
-        email.setTimeEmailSent(timeEmailSent);
-
-    }
-
-    /**
-     * Constructor with the arbitrageMargin and TO email address to be set by the user
-     * @param arbitrageMargin the margin difference accepted (not a valid arbitrage if below that value)
-     * @param TO    the email address where email alerts will be sent
-     */
-    public ArbitrageEmailAction(double arbitrageMargin, String TO) {
-        super(arbitrageMargin);
-        email.setTO(TO);
-
-    }
-
-    /**
-     *Empty constructor
-     */
-    public ArbitrageEmailAction() {
-
-    }
+    private Email email;
 
     public Email getEmail() {
         return email;
@@ -97,23 +56,18 @@ public class ArbitrageEmailAction extends ArbitrageActionSelection {
      * Email method that checks to see if the email is under the email rate limit before sending.
      * the method uses an email being taken in to call the methods buildHTMLBody, buildTEXTBody and setSubject method to
      * set custom messages based on the highbid, lowask and difference. Then sends the email using the Amazon SES api.
-     * @param email     object from Email Class
      * @param lowAsk    the lowest ask found (buy)
      * @param highBid   the highest bid found (sell)
-     * @param margin    the margin difference accepted (not a valid arbitrage if below that value)
      * @throws EmailLimitException
      */
-    public void email(Email email,
-                      TickerData lowAsk, TickerData highBid, double margin) throws EmailLimitException {
+    public void email(TickerData lowAsk, TickerData highBid) throws EmailLimitException {
 
 
         if (!emailService.underEmailLimit()) {
-
-
             throw new EmailLimitException("Email limit reached for the day, please try again tomorrow");
         }
-        email.buildHTMLBody(lowAsk,highBid,margin);
-        email.buildTextBody(lowAsk,highBid,margin);
+        email.buildHTMLBody(lowAsk, highBid, getArbitrageMargin());
+        email.buildTextBody(lowAsk, highBid, getArbitrageMargin());
         email.setSUBJECT("Arbitrage Update");
         try {
 

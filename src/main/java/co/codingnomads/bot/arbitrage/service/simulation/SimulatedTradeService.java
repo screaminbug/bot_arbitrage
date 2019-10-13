@@ -22,10 +22,9 @@ import java.util.Random;
 
 public class SimulatedTradeService implements TradeService {
 
-    @Autowired
     private SimulatedWallet simulatedWallet;
-
     private Exchange exchange;
+    private TradeService tradeService;
 
     public SimulatedTradeService(Exchange exchange, SimulatedWallet simulatedWallet) {
 

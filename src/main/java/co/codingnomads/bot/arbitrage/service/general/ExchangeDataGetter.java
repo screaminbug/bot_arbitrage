@@ -4,15 +4,19 @@ import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
 import co.codingnomads.bot.arbitrage.model.exchange.ActivatedExchange;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import co.codingnomads.bot.arbitrage.service.thread.GetTickerDataThread;
-import jdk.nashorn.internal.runtime.logging.Logger;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.Ticker;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 
 /**
@@ -20,13 +24,11 @@ import java.util.concurrent.*;
  *
  * A class to get data from exchanges and format it correctly
  */
-@Service
 @Slf4j
 public class ExchangeDataGetter {
 
     private final static int TIMEOUT = 30;
 
-
     /**
      *
      * Get All the TickerData from the selected exchanged
@@ -35,26 +37,12 @@ public class ExchangeDataGetter {
      * @param tradeValueBase the value of the trade if using the trading action as behavior
      * @return A list of TickerData for all the exchanges
      */
-    public ArrayList<TickerData> getAllTickerData(ArrayList<ActivatedExchange> activatedExchanges,
-                                                  CurrencyPair currencyPair,
-                                                  BigDecimal tradeValueBase) {
-        return getAllTickerData(activatedExchanges, currencyPair, tradeValueBase, null);
-    }
+    public List<TickerData> getAllTickerData(List<ActivatedExchange> activatedExchanges,
+                                             CurrencyPair currencyPair,
+                                             BigDecimal tradeValueBase,
+                                             SimulatedWallet simulatedWallet) {
 
-    /**
-     *
-     * Get All the TickerData from the selected exchanged
-     * @param activatedExchanges list of currently acrivated exchanges
-     * @param currencyPair the pair the TickerData is seeked for
-     * @param tradeValueBase the value of the trade if using the trading action as behavior
-     * @return A list of TickerData for all the exchanges
-     */
-    public ArrayList<TickerData> getAllTickerData(ArrayList<ActivatedExchange> activatedExchanges,
-                                                  CurrencyPair currencyPair,
-                                                  BigDecimal tradeValueBase,
-                                                  SimulatedWallet simulatedWallet) {
-
-        ArrayList<TickerData> list = new ArrayList<>();
+        List<TickerData> list = new ArrayList<>();
 
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         CompletionService<TickerData> pool = new ExecutorCompletionService<>(executor);
@@ -62,7 +50,12 @@ public class ExchangeDataGetter {
         //for each activated exchange submit into the executor pool
         for (ActivatedExchange activatedExchange : activatedExchanges) {
             if (activatedExchange.isActivated() || activatedExchange.isSimulatedMode()) {
-                GetTickerDataThread temp = new GetTickerDataThread(activatedExchange, currencyPair, tradeValueBase, simulatedWallet);
+                GetTickerDataThread temp =
+                        new GetTickerDataThread(
+                                activatedExchange,
+                                currencyPair,
+                                tradeValueBase,
+                                new SimulatedWallet(simulatedWallet.getAllBalances()));
                 pool.submit(temp);
             }
         }

@@ -11,19 +11,15 @@ public abstract class ArbitrageActionSelection {
     private double arbitrageMargin;
 
 
-    public ArbitrageActionSelection() {
-    }
-
-    public double getArbitrageMargin() {
-        return arbitrageMargin;
+    protected ArbitrageActionSelection() {
     }
 
     public void setArbitrageMargin(double arbitrageMargin) {
         this.arbitrageMargin = arbitrageMargin;
     }
 
-    public ArbitrageActionSelection(double arbitrageMargin) {
-        this.arbitrageMargin = arbitrageMargin;
+    protected double getArbitrageMargin() {
+        return arbitrageMargin;
     }
 
 }

@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Thomas Leruth on 12/18/17
@@ -48,8 +49,8 @@ public class Detection {
      * @throws WaitTimeException
      * @throws ExchangeDataException
      */
-    public void run(ArrayList<CurrencyPair> currencyPairList,
-                    ArrayList<ExchangeSpecs> selectedExchanges,
+    public void run(List<CurrencyPair> currencyPairList,
+                    List<ExchangeSpecs> selectedExchanges,
                     DetectionActionSelection detectionActionSelection) throws IOException, InterruptedException, WaitTimeException, ExchangeDataException {
 
         Boolean logMode = detectionActionSelection instanceof DetectionLogAction;
@@ -62,7 +63,7 @@ public class Detection {
         int logCounter = 1;
 
         //get all the selected exchanges
-        ArrayList<ActivatedExchange> activatedExchanges =
+        List<ActivatedExchange> activatedExchanges =
                 exchangeGetter.getAllSelectedExchangeServices(selectedExchanges, false);
 
         //for each differencewrapper in the the difference wrapper list
@@ -73,10 +74,11 @@ public class Detection {
 
             for (CurrencyPair currencyPair : currencyPairList) {
 
-                ArrayList<TickerData> listTickerData = exchangeDataGetter.getAllTickerData(
+                List<TickerData> listTickerData = exchangeDataGetter.getAllTickerData(
                         activatedExchanges,
                         currencyPair,
-                        valueOfTradeValueBase);
+                        valueOfTradeValueBase,
+                        null);
 
                 if (listTickerData.size() == 0) {
                     differenceWrapperList.add(new DifferenceWrapper(currencyPair));

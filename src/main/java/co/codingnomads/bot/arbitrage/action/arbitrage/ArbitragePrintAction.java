@@ -5,45 +5,26 @@ import co.codingnomads.bot.arbitrage.exchange.ExchangeSpecs;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import co.codingnomads.bot.arbitrage.service.general.MarginDiffCompare;
 import org.knowm.xchange.ExchangeSpecification;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 /**
  * Created by Thomas Leruth on 12/17/17
  * class for the information to use the print method as acting behavior
  */
-@Service
+@Component("print")
+@Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class ArbitragePrintAction extends ArbitrageActionSelection {
-
-    /**
-     * Fully qualified constructor
-     * @param arbitrageMargin
-     */
-    public ArbitragePrintAction(double arbitrageMargin) {
-        super(arbitrageMargin);
-    }
-
-    /**
-     * empty constructor
-     */
-    public ArbitragePrintAction(){
-
-    }
-
-    ExchangeSpecs exchangeSpecs = new ExchangeSpecs() {
-        @Override
-        public ExchangeSpecification getSetupExchange() {
-            return null;
-        }
-    };
 
     /**
      * Method to print the arbitrage action to the console
      *
      * @param lowAsk          the lowest ask found (buy)
      * @param highBid         the highest bid found (sell)
-     * @param arbitrageMargin the margin difference accepted (not a valid arbitrage if below that value)
      */
-    public void print(TickerData lowAsk, TickerData highBid, double arbitrageMargin) {
+    public void print(TickerData lowAsk, TickerData highBid) {
 
         MarginDiffCompare marginDiffCompare = new MarginDiffCompare();
 
@@ -51,7 +32,7 @@ public class ArbitragePrintAction extends ArbitrageActionSelection {
         BigDecimal difference = marginDiffCompare.findDiff(lowAsk,highBid);
 
         //the difference between the arbitrage margin and percentage of returns
-        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk,highBid,arbitrageMargin);
+        BigDecimal marginSubDiff = marginDiffCompare.diffWithMargin(lowAsk, highBid, getArbitrageMargin());
 
         //if the arbitrage margin - the percent difference between the highestBid and lowAsk is greater than zero arbitrage detected
         if (marginSubDiff.compareTo(BigDecimal.ZERO) > 0) {

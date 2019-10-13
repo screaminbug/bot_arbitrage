@@ -51,8 +51,13 @@ public class GetTickerDataThread implements Callable<TickerData> {
         if (tradingEnvironment || simulatedEnvironment && tickerData != null) {
             try {
                 if (simulatedEnvironment) {
-                    baseFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.base).getTotal();
-                    counterFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.counter).getTotal();
+                    if (simulatedWallet != null) {
+                        baseFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.base).getTotal();
+                        counterFund = simulatedWallet.getBalance(activatedExchange.getExchange(), currencyPair.counter).getTotal();
+                    } else {
+                        baseFund = new BigDecimal("100");
+                        counterFund = new BigDecimal("100");
+                    }
                 } else {
                     Wallet wallet = activatedExchange.getExchange().getAccountService().getAccountInfo().getWallet();
                     baseFund = wallet.getBalance(currencyPair.base).getTotal();

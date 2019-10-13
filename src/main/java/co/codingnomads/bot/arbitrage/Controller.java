@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -88,34 +89,32 @@ public class Controller {
 
     public void runBot() throws IOException, InterruptedException, EmailLimitException, WaitTimeException, ExchangeDataException{
 
-//      set the exchanges you wish to use, you may optionally set the specific exchange specifications to enable trading action
-        ArrayList<ExchangeSpecs> exchangeList = new ArrayList<>();
-        exchangeList.add(new KrakenSpecs(true));
-        exchangeList.add(new GDAXSpecs(true));
-        exchangeList.add(new BittrexSpecs(true));
-        exchangeList.add(new BinanceSpecs(true));
-        exchangeList.add(new PoloniexSpecs(true));
-        exchangeList.add(new BittrexSpecs(true));
-        exchangeList.add(new GeminiSpecs(true));
-
-        //choose one and only one of the following Arbitrage or Detection trade actions
-
-        //optional set how many times you would like the arbitrage action to run, if null will run once
-        arbitrage.setLoopIterations(50);
-
-        //optional set to the time interval you would like the arbitrage action to rerun in milliseconds
-        //if not set, the action will run every 5 seconds untill the loopIteration is complete
-        arbitrage.setTimeIntervalRepeater(5000);
-
-
-        //Example of an Arbitrage trade action
-        arbitrageTradingAction.setArbitrageMargin(0.03);
-        arbitrageTradingAction.setTradeValueBase(0.020);
-        arbitrage.run(
-                CurrencyPair.ETH_BTC,
-                exchangeList,
-                arbitrageTradingAction,
-                true);
+////      set the exchanges you wish to use, you may optionally set the specific exchange specifications to enable trading action
+//        List<ExchangeSpecs> exchangeList = new ArrayList<>();
+//        exchangeList.add(new KrakenSpecs(true));
+//        exchangeList.add(new GDAXSpecs(true));
+//        exchangeList.add(new BittrexSpecs(true));
+//        exchangeList.add(new BinanceSpecs(true));
+//        exchangeList.add(new PoloniexSpecs(true));
+//        exchangeList.add(new BittrexSpecs(true));
+//        exchangeList.add(new GeminiSpecs(true));
+//
+//        //choose one and only one of the following Arbitrage or Detection trade actions
+//
+//        //optional set how many times you would like the arbitrage action to run, if null will run once
+//        arbitrage.setLoopIterations(50);
+//
+//        //optional set to the time interval you would like the arbitrage action to rerun in milliseconds
+//        //if not set, the action will run every 5 seconds untill the loopIteration is complete
+//        arbitrage.setTimeIntervalRepeater(5000);
+//
+//
+//        //Example of an Arbitrage trade action
+//        arbitrageTradingAction.setArbitrageMargin(0.03);
+//        arbitrageTradingAction.setTradeValueBase(0.020);
+//        arbitrage.run(
+//                CurrencyPair.ETH_BTC,
+//                exchangeList);
 
 
 

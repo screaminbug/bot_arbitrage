@@ -1,191 +1,181 @@
 package co.codingnomads.bot.arbitrage.service.arbitrage;
 
+import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitrageEmailAction;
+import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitragePrintAction;
+import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitrageTradingAction;
+import co.codingnomads.bot.arbitrage.action.arbitrage.SimulatedArbitrageTradingAction;
+import co.codingnomads.bot.arbitrage.action.arbitrage.selection.ArbitrageActionSelection;
+import co.codingnomads.bot.arbitrage.exception.EmailLimitException;
 import co.codingnomads.bot.arbitrage.exception.ExchangeDataException;
+import co.codingnomads.bot.arbitrage.exchange.ExchangeSpecs;
 import co.codingnomads.bot.arbitrage.exchange.simulation.SimulatedWallet;
 import co.codingnomads.bot.arbitrage.model.exchange.ActivatedExchange;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
-import co.codingnomads.bot.arbitrage.action.arbitrage.selection.ArbitrageActionSelection;
-import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitragePrintAction;
-import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitrageTradingAction;
-import co.codingnomads.bot.arbitrage.action.arbitrage.ArbitrageEmailAction;
-import co.codingnomads.bot.arbitrage.exception.EmailLimitException;
-import co.codingnomads.bot.arbitrage.exchange.ExchangeSpecs;
-import co.codingnomads.bot.arbitrage.service.general.*;
-import org.knowm.xchange.currency.Currency;
+import co.codingnomads.bot.arbitrage.service.general.BalanceCalc;
+import co.codingnomads.bot.arbitrage.service.general.DataUtil;
+import co.codingnomads.bot.arbitrage.service.general.ExchangeDataGetter;
+import co.codingnomads.bot.arbitrage.service.general.ExchangeGetter;
 import org.knowm.xchange.currency.CurrencyPair;
-import org.knowm.xchange.dto.account.Balance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.List;
+
+import static co.codingnomads.bot.arbitrage.service.arbitrage.ArbitrageMode.TRADING;
 
 /**
  * Created by Thomas Leruth on 12/14/17
+ * Modified by Tomislav Strelar on 2019-10-13
  * <p>
  * the arbitrage bot class
  */
 
 
 @Service
+@Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class Arbitrage {
 
+    public static final int MAX_REPEAT_INTERVAL = 5000;
     @Autowired
     private SimulatedWallet simulatedWallet;
 
-    BalanceCalc balanceCalc = new BalanceCalc();
+    @Autowired
+    private ExchangeGetter exchangeGetter;
 
-    ExchangeDataGetter exchangeDataGetter = new ExchangeDataGetter();
+    @Autowired
+    @Qualifier("trading")
+    private ArbitrageTradingAction tradingAction;
 
-    DataUtil dataUtil = new DataUtil();
+    @Autowired
+    @Qualifier("simulatedTrade")
+    private SimulatedArbitrageTradingAction simulatedTradingAction;
 
-    ExchangeGetter exchangeGetter = new ExchangeGetter();
+    @Autowired
+    @Qualifier("email")
+    private ArbitrageEmailAction emailAction;
+
+    @Autowired
+    @Qualifier("print")
+    private ArbitragePrintAction printAction;
 
 
-    int timeIntervalRepeater;
-
-    int loopIterations;
-
-    public int getTimeIntervalRepeater() {
-        return timeIntervalRepeater;
-    }
+    private BalanceCalc balanceCalc = new BalanceCalc();
+    private ExchangeDataGetter exchangeDataGetter = new ExchangeDataGetter();
+    private DataUtil dataUtil = new DataUtil();
+    private int timeIntervalRepeater;
+    private int loopIterations;
 
     public void setTimeIntervalRepeater(int timeIntervalRepeater) {
         this.timeIntervalRepeater = timeIntervalRepeater;
     }
-
-    public int getLoopIterations() {
-        return loopIterations;
-    }
-
     public void setLoopIterations(int loopIterations) {
         this.loopIterations = loopIterations;
     }
 
     /**
-     * Arbitrage bot with multiple arbitrage action
+     *
      *
      * @param currencyPair             the pair selected
-     * @param selectedExchanges        an ArrayList of ExchangeEnum that will be looked in
-     * @param arbitrageActionSelection A Pojo for selecting which action to be taken after an arbitrage detection
+     * @param selectedExchanges        a List of Exchange specs that will be looked in
      * @throws IOException
      */
     public void run(CurrencyPair currencyPair,
-                    ArrayList<ExchangeSpecs> selectedExchanges,
-                    ArbitrageActionSelection arbitrageActionSelection,
-                    boolean isSimulated) throws IOException, InterruptedException, EmailLimitException, ExchangeDataException {
+                    List<ExchangeSpecs> selectedExchanges,
+                    ArbitrageMode arbitrageMode) throws IOException, InterruptedException, EmailLimitException, ExchangeDataException {
 
-
-        //Determines the arbitrage action being called
-        boolean tradingMode = arbitrageActionSelection instanceof ArbitrageTradingAction;
-        boolean emailMode = arbitrageActionSelection instanceof ArbitrageEmailAction;
-        boolean printMode = arbitrageActionSelection instanceof ArbitragePrintAction;
-
-        //If trading mode and exchange specs are not set up, throw new ExchangeDataException
-        if (tradingMode && !isSimulated) {
-
+        if (arbitrageMode == TRADING) {
             for (ExchangeSpecs exchange : selectedExchanges) {
-
-                if (exchange.getSetupExchange().getApiKey() == null || exchange.getSetupExchange().getSecretKey() == null) {
-
-                    throw new ExchangeDataException("You must enter correct exchange specs for " + exchange.getSetupExchange().getExchangeName());
+                if (exchange.getSetupExchange().getApiKey() == null
+                        || exchange.getSetupExchange().getSecretKey() == null) {
+                    throw new ExchangeDataException(
+                            "You must enter correct exchange specs for "
+                                    + exchange.getSetupExchange().getExchangeName());
                 }
-
             }
-
-//            prints balance out for the selectedExchanges
+            // prints balance out for the selectedExchanges
             balanceCalc.Balance(selectedExchanges, currencyPair);
         }
 
+        //create a new array list of Activated Exchanges and sets it equal to the selected exchanges set in the controller
+        List<ActivatedExchange> activatedExchanges =
+                exchangeGetter.getAllSelectedExchangeServices(
+                        selectedExchanges,
+                        arbitrageMode == TRADING);
 
+        doArbitrage(currencyPair, activatedExchanges, arbitrageMode, false);
+    }
 
-        //set tradeValueBase to -1
+    /**
+     * Arbitrage bot with multiple arbitrage action
+     *
+     * @param currencyPair
+     * @param activatedExchanges
+     * @param arbitrageMode
+     * @throws ExchangeDataException
+     * @throws EmailLimitException
+     * @throws InterruptedException
+     */
+    public void doArbitrage(CurrencyPair currencyPair,
+                             List<ActivatedExchange> activatedExchanges,
+                             ArbitrageMode arbitrageMode,
+                             boolean isSimulated) throws ExchangeDataException, EmailLimitException, InterruptedException {
+
         double tradeValueBase = -1;
 
-
-        //create a new array list of Activated Exchanges and sets it equal to the selected exchanges set in the controller
-        ArrayList<ActivatedExchange> activatedExchanges = exchangeGetter.getAllSelectedExchangeServices(selectedExchanges, tradingMode);
-
-        // Todo: make this follow declared pairs in selectors
-        if (isSimulated) {
-            activatedExchanges.forEach($ -> {
-                    simulatedWallet.putBalance($.getExchange(), Currency.ETH, new Balance(Currency.ETH, new BigDecimal(1000)));
-                    simulatedWallet.putBalance($.getExchange(), Currency.USD, new Balance(Currency.USD, new BigDecimal(100000)));
-                    simulatedWallet.putBalance($.getExchange(), Currency.BTC, new Balance(Currency.BTC, new BigDecimal(100)));
-            });
+        if (arbitrageMode == TRADING) {
+            if (isSimulated) {
+                tradeValueBase = simulatedTradingAction.getTradeValueBase();
+            } else {
+                tradeValueBase = tradingAction.getTradeValueBase();
+            }
         }
 
-        //sets the tradeValueBase given in the controller for arbitrageTradingAction
-        if (tradingMode) tradeValueBase = ((ArbitrageTradingAction) arbitrageActionSelection).getTradeValueBase();
-
-
-        //convert the double tradeValueBase to a big decimal
         BigDecimal valueOfTradeValueBase = BigDecimal.valueOf(tradeValueBase);
 
-
-        //makes while loop run continuously, if loopIteration is set, and only once is not set
         while (loopIterations >= 0) {
-
-
-            //Create an ArrrayList of TickerData and set it to the get all ticker data method from the exchange data getter class
-            ArrayList<TickerData> listTickerData = exchangeDataGetter.getAllTickerData(
+            List<TickerData> listTickerData = exchangeDataGetter.getAllTickerData(
                     activatedExchanges,
                     currencyPair,
                     valueOfTradeValueBase,
                     simulatedWallet);
-
-            //if the list of ticker data is empty the currencypair is not supported on the exchange
-            if (tradingMode && listTickerData.size() == 0) {
-
+            if (arbitrageMode == TRADING && listTickerData.size() == 0) {
                 throw new ExchangeDataException("Unable to pull exchange data, either the pair " + currencyPair + " is not supported on the exchange/s selected" +
                         " or you do not have a wallet with the needed trade base of " + tradeValueBase + currencyPair.base);
             }
 
-
-            //find the best sell price
             TickerData highBid = dataUtil.highBidFinder(listTickerData);
-            //find the best buy price
             TickerData lowAsk = dataUtil.lowAskFinder(listTickerData);
 
+            switch (arbitrageMode) {
+                case PRINT:
+                    printAction.print(lowAsk, highBid);
+                    break;
+                case EMAIL:
+                    emailAction.email(lowAsk, highBid);
+                    break;
+                case TRADING:
+                    ArbitrageTradingAction selectedTradingAction;
+                    if (isSimulated) {  selectedTradingAction = simulatedTradingAction; }
+                    else             {  selectedTradingAction = tradingAction;          }
 
-            //new BigDecimal set to the difference of the best sell price and the best buy price
-            //BigDecimal difference = highBid.getBid().divide(lowAsk.getAsk(), 5, RoundingMode.HALF_EVEN);
-
-
-            //if the call is an instance of print action, run the print method form arbitrage print action
-            if (printMode) {
-                ArbitragePrintAction arbitragePrintAction = (ArbitragePrintAction) arbitrageActionSelection;
-                arbitragePrintAction.print(lowAsk, highBid, arbitrageActionSelection.getArbitrageMargin());
+                    if (selectedTradingAction.canTrade(lowAsk, highBid)) {
+                        selectedTradingAction.makeTrade(lowAsk, highBid);
+                    }
+                    break;
             }
-            //if the call is an instance of email action, run the email method from the arbitrage email action
-            if (emailMode) {
-                ArbitrageEmailAction arbitrageEmailAction = (ArbitrageEmailAction) arbitrageActionSelection;
-                arbitrageEmailAction.email(arbitrageEmailAction.getEmail(), lowAsk, highBid, arbitrageActionSelection.getArbitrageMargin());
-
-            }
-            //if the call is an instance of trading action, run the trade method from the arbitrage trading action
-            if (tradingMode) {
-                ArbitrageTradingAction arbitrageTradingAction = (ArbitrageTradingAction) arbitrageActionSelection;
-
-                if (arbitrageTradingAction.canTrade(lowAsk, highBid)) {
-                    arbitrageTradingAction.makeTrade(lowAsk, highBid);
-                }
-
-            }
-
-            //if the timeIntervalRepeater is set and is greater than 5 seconds, sleeps the thread that time
-            if (timeIntervalRepeater >= 5000) {
-                Thread.sleep(timeIntervalRepeater);
-                loopIterations--;
-            }
-            //if the timeIntervalRepeater is  not set  or is set to lower than 5 seconds, sleep the thread 5 seconds
-            else {
-                Thread.sleep(5000);
-                loopIterations--;
-            }
+            Thread.sleep(Math.max(timeIntervalRepeater, MAX_REPEAT_INTERVAL));
+            loopIterations--;
         }
+
+
     }
+
 }
 
 

@@ -3,18 +3,29 @@ package co.codingnomads.bot.arbitrage.exchange.simulation;
 import org.knowm.xchange.Exchange;
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.dto.account.Balance;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-@Service
+@Component
+@Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
 public class SimulatedWallet {
 
-    private Map<Exchange, Map<Currency, Balance>> balances = new HashMap<>();
+    private Map<Exchange, Map<Currency, Balance>> balances = new ConcurrentHashMap<>();
+
+    public SimulatedWallet() {}
+
+    public SimulatedWallet(Map<Exchange, Map<Currency, Balance>> balances) {
+        this.balances = balances;
+    }
+
+    public Map<Exchange, Map<Currency, Balance>> getAllBalances() { return balances; }
 
     public void putBalance(Exchange exchange, Currency currency, Balance balance) {
         balances.computeIfAbsent(exchange, $ -> new HashMap<>());

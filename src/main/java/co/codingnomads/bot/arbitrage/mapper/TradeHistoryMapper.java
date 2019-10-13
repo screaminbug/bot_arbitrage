@@ -2,6 +2,8 @@ package co.codingnomads.bot.arbitrage.mapper;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+
 import java.math.BigDecimal;
 
 /**
@@ -42,7 +44,7 @@ public interface TradeHistoryMapper {
      * @param estimatedFee
      */
     @Insert(INSERT_Trades)
-    public void insertTrades(String baseName, String counterName, String buyExchange, String sellExchange, BigDecimal oldTotalBase,
+    void insertTrades(String baseName, String counterName, String buyExchange, String sellExchange, BigDecimal oldTotalBase,
                              BigDecimal newTotalBase, BigDecimal differenceBaseBuy, BigDecimal differenceCounterBuy, BigDecimal differenceBaseSell,
                              BigDecimal differenceCounterSell, BigDecimal realAsk, BigDecimal realBid, BigDecimal realDifference, BigDecimal expectedDifferenceFormatted,
                              BigDecimal estimatedFee);

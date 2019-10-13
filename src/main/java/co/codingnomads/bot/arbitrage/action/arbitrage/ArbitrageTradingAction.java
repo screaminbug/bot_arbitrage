@@ -2,9 +2,10 @@ package co.codingnomads.bot.arbitrage.action.arbitrage;
 
 import co.codingnomads.bot.arbitrage.action.arbitrage.selection.ArbitrageActionSelection;
 import co.codingnomads.bot.arbitrage.exception.ExchangeDataException;
+import co.codingnomads.bot.arbitrage.model.rest.TradeResponse;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
-import co.codingnomads.bot.arbitrage.model.trading.OrderIDWrapper;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerDataTrading;
+import co.codingnomads.bot.arbitrage.model.trading.OrderIDWrapper;
 import co.codingnomads.bot.arbitrage.model.trading.TradingData;
 import co.codingnomads.bot.arbitrage.model.trading.WalletWrapper;
 import co.codingnomads.bot.arbitrage.service.general.MarginDiffCompare;
@@ -16,9 +17,12 @@ import org.knowm.xchange.dto.Order;
 import org.knowm.xchange.dto.account.Wallet;
 import org.knowm.xchange.dto.trade.MarketOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.concurrent.*;
 
 /**
@@ -26,32 +30,20 @@ import java.util.concurrent.*;
  * <p>
  * class for the information needed to use the trading action as behavior action
  */
-public abstract class ArbitrageTradingAction extends ArbitrageActionSelection {
+@Component("trading")
+@Scope(scopeName = "websocket", proxyMode = ScopedProxyMode.TARGET_CLASS)
+public class ArbitrageTradingAction extends ArbitrageActionSelection {
 
     @Autowired
-    TradeHistoryService tradeHistoryService;
+    private TradeHistoryService tradeHistoryService;
 
-    double tradeValueBase;
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
+
+    private double tradeValueBase;
 
     //variable to keep track of how many trades you would like to make
-    int round =0;
-
-    /**
-     * Empty constructor for arbitrage trade action
-     */
-    public ArbitrageTradingAction() {
-
-    }
-
-    /**
-     * Fully qualified constructor for the
-     * @param arbitrageMargin
-     * @param tradeValueBase
-     */
-    public ArbitrageTradingAction(double arbitrageMargin, double tradeValueBase) {
-        super(arbitrageMargin);
-        this.tradeValueBase = tradeValueBase;
-    }
+    private int round =0;
 
     public double getTradeValueBase() {
         return tradeValueBase;
@@ -60,7 +52,6 @@ public abstract class ArbitrageTradingAction extends ArbitrageActionSelection {
     public void setTradeValueBase(double tradeValueBase) {
         this.tradeValueBase = tradeValueBase;
     }
-
 
     /**
      * CanTrade method that determines if there is an arbitrage opportunity and if you are able to execute it.
@@ -129,9 +120,13 @@ public abstract class ArbitrageTradingAction extends ArbitrageActionSelection {
                 System.out.println("==========================================================");
                 round++;
                 System.out.println("round:" + round);
+                simpMessagingTemplate.convertAndSend("/topic/traderesults",
+                        new TradeResponse(false, "Nothing yet. Retrying... " + round));
             }
             return false;
         }
+
+
 
 
     /**
@@ -254,18 +249,28 @@ public abstract class ArbitrageTradingAction extends ArbitrageActionSelection {
                         walletSell);
 
 
+        simpMessagingTemplate.convertAndSend("/topic/traderesults",
+                new TradeResponse(false,
+                        String.format("Ask: %s %s on %s<br>Bid: %s %s on %s",
+                                lowAsk.getAsk().toString(),
+                                lowAsk.getCurrencyPair().base,
+                                lowAsk.getExchange().getExchangeSpecification().getExchangeName(),
+                                highBid.getAsk().toString(),
+                                highBid.getCurrencyPair().base,
+                                highBid.getExchange().getExchangeSpecification().getExchangeName())
+                )
+        );
 
         //insert the tradingData into database
-        tradeHistoryService.insertTrades(tradingData);
+        //tradeHistoryService.insertTrades(tradingData);
+//        BigDecimal estimatedFees = expectedDifference.subtract(tradingData.getRealDifferenceFormated());
 
-        System.out.println("real bid was " + tradingData.getRealBid()
-                + " and real ask was " + tradingData.getRealAsk()
-                + " for a difference (after fees) of " + tradingData.getRealDifferenceFormated()
-                + "% vs an expected of " + expectedDifference + " %");
+//        String message = "real bid was " + tradingData.getRealBid()
+//                + " and real ask was " + tradingData.getRealAsk()
+//                + " for a difference (after fees) of " + tradingData.getRealDifferenceFormated()
+//                + "% vs an expected of " + expectedDifference + " %"
+//                + "/nEstimated fees = " + estimatedFees + tradingData.getCounterName();
 
-        BigDecimal estimatedFees = expectedDifference.subtract(tradingData.getRealDifferenceFormated());
-
-        System.out.println("Estimated fees = " + estimatedFees + tradingData.getCounterName());
     }
 }
 

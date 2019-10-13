@@ -16,7 +16,7 @@ public class TickerDataSimulated extends TickerDataTrading {
 
     public TickerDataSimulated(TickerDataTrading tickerData, SimulatedWallet simulatedWallet) {
         super(tickerData, tickerData.getBaseFund(), tickerData.getCounterFund());
-        this.simulatedWallet = simulatedWallet;
+        this.simulatedWallet = new SimulatedWallet(simulatedWallet.getAllBalances());
     }
 
     public Exchange getExchange() {

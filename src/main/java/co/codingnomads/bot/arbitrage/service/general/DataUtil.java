@@ -3,6 +3,7 @@ package co.codingnomads.bot.arbitrage.service.general;
 import co.codingnomads.bot.arbitrage.model.ticker.TickerData;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Thomas Leruth on 12/12/17
@@ -18,7 +19,7 @@ public class DataUtil {
      * @param list a list of TickerData for different exchanges
      * @return the item with the lowest Ask
      */
-    public TickerData lowAskFinder(ArrayList<TickerData> list) {
+    public TickerData lowAskFinder(List<TickerData> list) {
         int lowIndex = 0;
         if (list.size() > 1) {
             for (int i = 1; i < list.size(); i++) {
@@ -35,7 +36,7 @@ public class DataUtil {
      * @param list a list of TickerData for different exchanges
      * @return the item with highest Ask
      */
-    public TickerData highBidFinder(ArrayList<TickerData> list) {
+    public TickerData highBidFinder(List<TickerData> list) {
         int highIndex = 0;
         if (list.size() > 1) {
             for (int i = 1; i < list.size(); i++) {
